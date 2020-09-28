@@ -31,8 +31,6 @@ class BinaSpyder(scrapy.Spider):
 #            yield response.follow(next, callback = self.parse)
     def parse(self, response):
         item_links = response.css('.items-i a.item_link::attr(href)').extract()
-        #add comment
-        #add another comment
         for item_link in item_links: 
             yield response.follow(item_link, callback = self.parse_house)
         
