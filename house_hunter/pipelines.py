@@ -22,7 +22,7 @@ class BinaPipeline:
         self.conn = mysql.connector.connect(
             host = 'localhost',
             user = 'crawler',
-            passwd = 'badpassword',
+            passwd = '1234',
             database = 'houses'
         )
         self.curr = self.conn.cursor()

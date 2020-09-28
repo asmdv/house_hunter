@@ -12,8 +12,9 @@ class BinaSpyder(scrapy.Spider):
         return dict
 
     name = 'bina'
+    page = 1
     start_urls = [
-            'https://bina.az/items/1709244'
+            'https://bina.az/alqi-satqi?page=' + str(page)
     ]
 
 
@@ -28,21 +29,25 @@ class BinaSpyder(scrapy.Spider):
 #        next = response.css('li.next a::attr(href)').get()
 #        if next is not None:
 #            yield response.follow(next, callback = self.parse)
-#    def parse(self, response):
-#        yield self.parse_house(response)
+    def parse(self, response):
+        item_links = response.css('.items-i a.item_link::attr(href)').extract()
+        for item_link in item_links: 
+            yield response.follow(item_link, callback = self.parse_house)
         
     def parse_house(self, response):
 
         items = BinaItem()
         items['id'] = int(re.findall(r'\d+', response.css('.item_id::text')[0].extract())[0])
-        print(items['id'])
+        #print('////////////////////////////////////////\n' + re.findall(r'\d+', response.css('.item_id::text')[0].extract())[0]) + '\n')
         items['price_azn'] = int(''.join(re.findall(r'\d+', response.css('.azn .price-val::text').extract()[0])))
         
+        print(items['id'])
+
         #Take parameters table in the apartment page
         parameters_selection = response.css('.parameters')
         parameters_dict = self.get_parameters(parameters_selection)  
         parameters_conversion = {'Kateqoriya': 'category', 'Mərtəbə': 'floor', 'Otaq sayı': 'n_rooms', 'Kupça': 'deed_of_sale' }
-
+        print('Problem is not here')
         for key, value in parameters_conversion.items():
             if key in parameters_dict.keys():
 
@@ -56,6 +61,12 @@ class BinaSpyder(scrapy.Spider):
                     items[parameters_conversion[key]] = True if parameters_dict['Kupça'] == 'var' else False
                 else:
                     items[parameters_conversion[key]] = parameters_dict[key]
+            else:
+                if(key == 'Mərtəbə'):
+                    items['n_floors'] = None
+                    items['current_floor'] = None
+                else:
+                    items[parameters_conversion[key]] = None
         yield items
 
         
