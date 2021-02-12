@@ -17,12 +17,12 @@ class BinaPipeline:
     def __init__(self):
         self.create_connection()
         self.create_table()
-    
+
     def create_connection(self):
         self.conn = mysql.connector.connect(
             host = 'localhost',
             user = 'crawler',
-            passwd = '1234',
+            passwd = '123456',
             database = 'houses'
         )
         self.curr = self.conn.cursor()
