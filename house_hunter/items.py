@@ -13,6 +13,7 @@ class HouseHunterItem(scrapy.Item):
 
 class BinaItem(scrapy.Item):
     id = scrapy.Field()
+    title = scrapy.Field()
     price_azn = scrapy.Field()
     category = scrapy.Field()
     n_floors = scrapy.Field()

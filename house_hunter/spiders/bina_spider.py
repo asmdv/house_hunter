@@ -12,9 +12,10 @@ class BinaSpyder(scrapy.Spider):
         return dict
 
     name = 'bina'
-    page = 1
+    page = 5
+    url_name = 'https://bina.az/alqi-satqi?page='
     start_urls = [
-            'https://bina.az/alqi-satqi?page=' + str(page)
+        url_name + str(page)
     ]
 
 
@@ -30,27 +31,32 @@ class BinaSpyder(scrapy.Spider):
 #        if next is not None:
 #            yield response.follow(next, callback = self.parse)
     def parse(self, response):
-        item_links = response.css('.items-i a.item_link::attr(href)').extract()
+        item_links = response.css('.slider_controls::attr(href)').extract()
         for item_link in item_links: 
             yield response.follow(item_link, callback = self.parse_house)
+        self.page += 1
+        if self.page < 6:
+            next_url = self.url_name + str(self.page)
+            yield scrapy.Request(next_url, callback=self.parse)
         
     def parse_house(self, response):
 
         items = BinaItem()
         items['id'] = int(re.findall(r'\d+', response.css('.item_id::text')[0].extract())[0])
         #print('////////////////////////////////////////\n' + re.findall(r'\d+', response.css('.item_id::text')[0].extract())[0]) + '\n')
+        items['title'] = response.css('.services-container>h1::text').get()
         items['price_azn'] = int(''.join(re.findall(r'\d+', response.css('.azn .price-val::text').extract()[0])))
         
         print(items['id'])
 
+        parameters_selection = response.css('.parameters')
+        
         #Take parameters table in the apartment page
         parameters_selection = response.css('.parameters')
         parameters_dict = self.get_parameters(parameters_selection)  
         parameters_conversion = {'Kateqoriya': 'category', 'Mərtəbə': 'floor', 'Otaq sayı': 'n_rooms', 'Kupça': 'deed_of_sale' }
-        print('Problem is not here')
         for key, value in parameters_conversion.items():
             if key in parameters_dict.keys():
-
                 if key == 'Mərtəbə':
                     floors_digits = re.findall(r'\d+', parameters_dict[key])
                     items['n_floors'] = int(floors_digits[1]) 
