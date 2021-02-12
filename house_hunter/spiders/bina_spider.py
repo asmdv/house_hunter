@@ -1,6 +1,7 @@
 import scrapy
 from ..items import BinaItem
 import re
+
 class BinaSpyder(scrapy.Spider):
     
     # Get parameters in parameters tabel in house page view of Bina.az
@@ -12,8 +13,9 @@ class BinaSpyder(scrapy.Spider):
         return dict
 
     name = 'bina'
-    page = 5
-    url_name = 'https://bina.az/alqi-satqi?page='
+    domain = '.az'
+    page = 1
+    url_name = 'https://' + name + domain + '/alqi-satqi?page='
     start_urls = [
         url_name + str(page)
     ]
@@ -35,7 +37,7 @@ class BinaSpyder(scrapy.Spider):
         for item_link in item_links: 
             yield response.follow(item_link, callback = self.parse_house)
         self.page += 1
-        if self.page < 6:
+        if self.page < 1:
             next_url = self.url_name + str(self.page)
             yield scrapy.Request(next_url, callback=self.parse)
         
@@ -47,14 +49,20 @@ class BinaSpyder(scrapy.Spider):
         items['title'] = response.css('.services-container>h1::text').get()
         items['price_azn'] = int(''.join(re.findall(r'\d+', response.css('.azn .price-val::text').extract()[0])))
         
-        print(items['id'])
+        coordinates = response.css('.open_map > img::attr(data-src)').get()
+        coordinates = re.findall(r'[0-9]*[.][0-9]+', coordinates) # an array
+        items['latitude'] = float(coordinates[0])
+        items['longitude'] = float(coordinates[1])
+
+        items['link'] = 'https://' + self.name + self.domain + '/items/' + str(items['id'])
+
+        items['updated_time'] = response.css('head > meta[property="og:updated_time"]::attr(content)').get()
 
         parameters_selection = response.css('.parameters')
-        
         #Take parameters table in the apartment page
         parameters_selection = response.css('.parameters')
         parameters_dict = self.get_parameters(parameters_selection)  
-        parameters_conversion = {'Kateqoriya': 'category', 'Mərtəbə': 'floor', 'Otaq sayı': 'n_rooms', 'Kupça': 'deed_of_sale' }
+        parameters_conversion = {'Kateqoriya': 'category', 'Mərtəbə': 'floor', 'Sahə': 'area', 'Otaq sayı': 'n_rooms', 'Kupça': 'deed_of_sale' }
         for key, value in parameters_conversion.items():
             if key in parameters_dict.keys():
                 if key == 'Mərtəbə':
@@ -65,6 +73,9 @@ class BinaSpyder(scrapy.Spider):
                     items[parameters_conversion[key]] = int(parameters_dict[key])
                 elif key == 'Kupça':
                     items[parameters_conversion[key]] = True if parameters_dict['Kupça'] == 'var' else False
+                elif key == 'Sahə':
+                    items[parameters_conversion[key]] = float(re.findall(r'[0-9]*[.]?[0-9]+', parameters_dict[key])[0])
+                    print (items[parameters_conversion[key]])
                 else:
                     items[parameters_conversion[key]] = parameters_dict[key]
             else:

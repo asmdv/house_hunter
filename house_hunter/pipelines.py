@@ -14,11 +14,12 @@ class HouseHunterPipeline:
 
 
 class BinaPipeline:
+    #Edit these values
     tablename = 'houses'
-    new = False
+    new = True
     def __init__(self):
         self.create_connection()
-        if not self.checkTableExists() or self.new:
+        if (not self.checkTableExists()) or self.new:
             self.create_table()
         
 
@@ -36,12 +37,17 @@ class BinaPipeline:
         self.curr.execute("""create table houses(
             id INT UNSIGNED NOT NULL UNIQUE,
             title TINYTEXT,
+            area DECIMAL(10, 2),
             price_azn INT UNSIGNED,
-            category TEXT,
+            category TINYTEXT,
             n_floors TINYINT UNSIGNED,
             current_floor TINYINT UNSIGNED,
             n_rooms TINYINT UNSIGNED,
-            deed_of_sale BOOLEAN
+            deed_of_sale BOOLEAN,
+            link TINYTEXT,
+            updated_time DATETIME,
+            latitude TINYTEXT,
+            longitude TINYTEXT
         )""")
 
     def checkTableExists(self):
@@ -70,17 +76,51 @@ class BinaPipeline:
             return True
         return False
     def store_db(self, item):
-        if(self.checkIdExists(item['id'])):
-            self.curr.execute("""insert into houses values (%s, %s, %s, %s, %s, %s, %s, %s)""", (
+        if(not self.checkIdExists(item['id'])):
+            self.curr.execute("""insert into houses values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (
                 item['id'],
                 item['title'],
+                item['area'],
                 item['price_azn'],
                 item['category'],
                 item['n_floors'],
                 item['current_floor'],
                 item['n_rooms'],
-                item['deed_of_sale']
+                item['deed_of_sale'],
+                item['link'],
+                item['updated_time'],
+                item['latitude'],
+                item['longitude']
                 ))
             self.conn.commit()
         else:
-            print("The id = {} already exists", item['id'])
+            query = """update houses.houses 
+            SET title = %s,
+            area = %s,
+            price_azn = %s,
+            category = %s,
+            n_floors = %s,
+            current_floor = %s,
+            n_rooms = %s,
+            deed_of_sale = %s,
+            link = %s,
+            updated_time = %s,
+            latitude = %s,
+            longitude = %s WHERE id = %s;
+            """
+            self.curr.execute(query,(
+                item['title'],
+                item['area'],
+                item['price_azn'],
+                item['category'],
+                item['n_floors'],
+                item['current_floor'],
+                item['n_rooms'],
+                item['deed_of_sale'],
+                item['link'],
+                item['latitude'],
+                item['updated_time'],
+                item['longitude'],
+                item['id']
+            ))
+            print("UPDATED!!!")
