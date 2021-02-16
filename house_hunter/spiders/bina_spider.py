@@ -56,8 +56,11 @@ class BinaSpyder(scrapy.Spider):
 
         items['link'] = 'https://' + self.name + self.domain + '/items/' + str(items['id'])
 
-        items['updated_time'] = response.css('head > meta[property="og:updated_time"]::attr(content)').get()
 
+        # -----Left here-----------------------------
+        # items['tags'] = response.css("ul.locations>li>a::text").extract()
+        items['updated_time'] = response.css('head > meta[property="og:updated_time"]::attr(content)').get()
+        # ---------------------------------------------
         parameters_selection = response.css('.parameters')
         #Take parameters table in the apartment page
         parameters_selection = response.css('.parameters')
