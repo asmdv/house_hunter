@@ -16,7 +16,7 @@ class HouseHunterPipeline:
 class BinaPipeline:
     #Edit these values
     tablename = 'houses'
-    new = True
+    new = False
     def __init__(self):
         self.create_connection()
         if (not self.checkTableExists()) or self.new:
@@ -32,6 +32,19 @@ class BinaPipeline:
         )
         self.curr = self.conn.cursor()
         pass
+
+    def lastDate(self):
+        try:
+            cur = self.curr
+            cur.execute("SELECT houses.updated_time from houses ORDER BY houses.updated_time DESC LIMIT 1")
+            return cur.fetchone()[0]
+        except:
+            now = datetime.datetime.now()
+            d = datetime.timedelta(days = 14)
+            date = now - d
+            # Basic smallest possible date
+            return d
+
     def create_table(self):
         self.curr.execute("""DROP TABLE IF EXISTS houses""")
         self.curr.execute("""create table houses(
@@ -75,6 +88,7 @@ class BinaPipeline:
         if cur.fetchone()[0] == 1:
             return True
         return False
+
     def store_db(self, item):
         if(not self.checkIdExists(item['id'])):
             self.curr.execute("""insert into houses values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", (
@@ -118,8 +132,8 @@ class BinaPipeline:
                 item['n_rooms'],
                 item['deed_of_sale'],
                 item['link'],
-                item['latitude'],
                 item['updated_time'],
+                item['latitude'],
                 item['longitude'],
                 item['id']
             ))

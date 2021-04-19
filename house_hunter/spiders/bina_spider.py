@@ -1,6 +1,9 @@
 import scrapy
+from scrapy.exceptions import CloseSpider
 from ..items import BinaItem
 import re
+from ..pipelines import BinaPipeline
+MAX_PAGE = 1600
 
 class BinaSpyder(scrapy.Spider):
     
@@ -19,25 +22,15 @@ class BinaSpyder(scrapy.Spider):
     start_urls = [
         url_name + str(page)
     ]
+    pipe = BinaPipeline()
+    lastDate = pipe.lastDate().strftime("%Y-%m-%dT%H:%M:%S")
 
-
-#    def parse(self, response):
-#        items = BinaItem() 
-#        quotes = response.css('.quote')
-#        for quote in quotes:
-#            items['text'] = quote.css('.text::text').extract()[0]
-#            items['author'] = quote.css('.author::text').extract()[0]
-#            yield items
-#
-#        next = response.css('li.next a::attr(href)').get()
-#        if next is not None:
-#            yield response.follow(next, callback = self.parse)
     def parse(self, response):
         item_links = response.css('.slider_controls::attr(href)').extract()
         for item_link in item_links: 
             yield response.follow(item_link, callback = self.parse_house)
         self.page += 1
-        if self.page < 1:
+        if self.page < MAX_PAGE:
             next_url = self.url_name + str(self.page)
             yield scrapy.Request(next_url, callback=self.parse)
         
@@ -49,10 +42,10 @@ class BinaSpyder(scrapy.Spider):
         items['title'] = response.css('.services-container>h1::text').get()
         items['price_azn'] = int(''.join(re.findall(r'\d+', response.css('.azn .price-val::text').extract()[0])))
         
-        coordinates = response.css('.open_map > img::attr(data-src)').get()
-        coordinates = re.findall(r'[0-9]*[.][0-9]+', coordinates) # an array
-        items['latitude'] = float(coordinates[0])
-        items['longitude'] = float(coordinates[1])
+        # coordinates = response.css('.open_map > img::attr(data-src)').get()
+        # coordinates = re.findall(r'[0-9]*[.][0-9]+', coordinates) # an array
+        items['latitude'] = float(response.css('#item_map').attrib['data-lat'])
+        items['longitude'] = float(response.css('#item_map').attrib['data-lng'])
 
         items['link'] = 'https://' + self.name + self.domain + '/items/' + str(items['id'])
 
@@ -60,6 +53,8 @@ class BinaSpyder(scrapy.Spider):
         # -----Left here-----------------------------
         # items['tags'] = response.css("ul.locations>li>a::text").extract()
         items['updated_time'] = response.css('head > meta[property="og:updated_time"]::attr(content)').get()
+        if (items['updated_time'] < self.lastDate):
+            raise CloseSpider('\033[92m' + 'Came to the last date' + '\033[0m')
         # ---------------------------------------------
         parameters_selection = response.css('.parameters')
         #Take parameters table in the apartment page
