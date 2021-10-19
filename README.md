@@ -1,2 +1,2 @@
 # house-hunter
-Simple house information crawler
+Real Estate crawler based on the data of bina.az
